@@ -5,6 +5,7 @@ import android.os.Build;
 import android.os.Bundle;
 import androidx.preference.ListPreference;
 import androidx.preference.SwitchPreference;
+import androidx.preference.Preference;
 import androidx.preference.SwitchPreferenceCompat;
 import net.kdt.pojavlaunch.R;
 import net.kdt.pojavlaunch.Tools;
