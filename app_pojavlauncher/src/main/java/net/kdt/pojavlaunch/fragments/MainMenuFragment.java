@@ -70,7 +70,7 @@ public class MainMenuFragment extends Fragment {
 
         mPlayButton.setOnClickListener(v -> {
             ExtraCore.setValue(ExtraConstants.LAUNCH_GAME, true);
-        });
+         });
 
         mShareLogsButton.setOnClickListener((v) -> shareLog(requireContext()));
 
