@@ -1,5 +1,5 @@
-# Remove Angel Aura Amethyst account data
-Angel Aura Amethyst uses two types of accounts:
+# Remove Angel Aura PojavLauncher account data
+Angel Aura PojavLauncher uses two types of accounts:
 - Local accounts
 - Microsoft accounts
 <br>
