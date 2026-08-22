@@ -1,26 +1,22 @@
 name: Android CI
 
 on:
-  pull_request:
-    branches-ignore:
-      - 'l10n_v3_openjdk' 
-    types: [ opened, reopened ]
   push:
-    branches-ignore:
-      - 'l10n_v3_openjdk'
   workflow_dispatch:
+  pull_request:
+    types: [labeled]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     env:
-      GPLAY_KEYSTORE_PASSWORD: ${{ secrets.GPLAY_KEYSTORE_PASSWORD }}
+      POJAV_GPLAY_KEYSTORE_PASSWORD: ${{ secrets.POJAV_GPLAY_KEYSTORE_PASSWORD }}
       CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
-          submodules: "recursive"
+          submodules: recursive
 
       - name: Set up JDK 21
         uses: actions/setup-java@v3
@@ -38,84 +34,113 @@ jobs:
           name: output-aar
           path: app_pojavlauncher/libs
 
-      - name: Get JRE 8
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          workflow: build.yml
-          path: app_pojavlauncher/src/main/assets/components/jre
-          workflow_conclusion: completed
-          repo: AngelAuraMC/angelauramc-openjdk-build
-          branch: buildjre8
-          name: jre8-pojav
+      # - name: Get Mesa
+      #  uses: dawidd6/action-download-artifact@v6  
+      #  continue-on-error: true
+      #  with:
+      #    github_token: ${{ secrets.MESA_ACTIONS }}
+      #    repo: MojoLauncher/mesa-unified2
+      #    workflow: android.yml
+      #    workflow_conclusion: success
+      #    branch: mojo/26.2
+      #    name: mesa-aar
+      #    path: app_pojavlauncher/libs
+
+      # - name: Get JRE 8
+      #  uses: dawidd6/action-download-artifact@v9
+      #  with:
+      #    workflow: build.yml
+      #    path: app_pojavlauncher/src/main/assets/components/jre
+      #    workflow_conclusion: completed
+      #    repo: MojoLauncher/android-openjdk-build-multiarch
+      #    branch: buildjre8
+      #    name: jre8-pojav
 
       # - name: Get JRE17
-      #   uses: dawidd6/action-download-artifact@v9
-      #   with:
-      #     workflow: build.yml
-      #     path: app_pojavlauncher/src/main/assets/components/jre-new
-      #     workflow_conclusion: completed
-      #     repo: AngelAuraMC/angelauramc-openjdk-build
-      #     branch: buildjre17-21
-      #     name: jre17-pojav
-      #
-      # - name: Get JRE21
-      #   uses: dawidd6/action-download-artifact@v9
-      #   with:
-      #     workflow: build.yml
-      #     path: app_pojavlauncher/src/main/assets/components/jre-21
-      #     workflow_conclusion: completed
-      #     repo: AngelAuraMC/angelauramc-openjdk-build
-      #     branch: buildjre17-21
-      #     name: jre21-pojav
-      #
+      #  uses: dawidd6/action-download-artifact@v9
+      #  with:
+      #    workflow: build.yml
+      #    path: app_pojavlauncher/src/main/assets/components/jre-new
+      #    workflow_conclusion: completed
+      #    repo: MojoLauncher/android-openjdk-build-multiarch
+      #    branch: buildjre17-21
+      #    name: jre17-pojav
+
+      #  - name: Get JRE21
+      #  uses: dawidd6/action-download-artifact@v9
+      #  with:
+      #    workflow: build.yml
+      #    path: app_pojavlauncher/src/main/assets/components/jre-21
+      #    workflow_conclusion: completed
+      #    repo: MojoLauncher/android-openjdk-build-multiarch
+      #    branch: buildjre17-21
+      #    name: jre21-pojav
+
       # - name: Get JRE25
-      #   uses: dawidd6/action-download-artifact@v9
-      #   with:
-      #     workflow: build.yml
-      #     path: app_pojavlauncher/src/main/assets/components/jre-25
-      #     workflow_conclusion: completed
-      #     repo: FCL-Team/Android-OpenJDK-Build
-      #     branch: Build_JRE_25
-      #     name: jre25-multiarch
+      #  uses: dawidd6/action-download-artifact@v9
+      #  with:
+      #    workflow: build.yml
+      #    path: app_pojavlauncher/src/main/assets/components/jre-25
+      #    workflow_conclusion: completed
+      #    repo: MojoLauncher/android-openjdk-build-multiarch
+      #    branch: buildjre8
+      #    name: jre8-pojav
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          validate-wrappers: false
-          gradle-version: "8.11"
+          gradle-version: "8.14.3"
 
-      - name: Run scripts
+      - name: Create out directory
+        run: mkdir out
+
+      - name: Build Publishing .aab
+        if: github.repository_owner == 'TeamPojavLauncher' && github.ref_name == 'v3_openjdk'
         run: |
-          ./scripts/languagelist_updater.sh
-          mkdir out
+          gradle :app_pojavlauncher:bundleFullGplay
+          mv app_pojavlauncher/build/outputs/bundle/fullGplay/app_pojavlauncher-full-gplay.aab out/app-gplay.aab
 
-      - name: Build Release .apk
+      - name: Build Debug .apk (Full)
         run: |
           # Build the launcher
-          gradle :app_pojavlauncher:assembleRelease
-          mv app_pojavlauncher/build/outputs/apk/release/app_pojavlauncher-release.apk out/app-release.apk
+          gradle :app_pojavlauncher:assembleFullDebug
+          mv app_pojavlauncher/build/outputs/apk/full/debug/app_pojavlauncher-full-debug.apk out/app-debug-full.apk
+
+      - name: Build Debug .apk (No runtime)
+        run: |
+         # Build the launcher (without jre8 installed)
+          gradle :app_pojavlauncher:assembleNoruntimeDebug
+          mv app_pojavlauncher/build/outputs/apk/noruntime/debug/app_pojavlauncher-noruntime-debug.apk out/app-debug-noruntime.apk
 
       - name: Gen md5sums
         run: |
-          md5sum out/app-release.apk > out/app-release.md5
+          md5sum out/app-debug-full.apk > out/app-debug-full.md5
+          md5sum out/app-debug-noruntime.apk > out/app-debug-noruntime.md5
 
-      - name: Build Debug .apk
-        run: |
-          # Build the launcher
-          gradle :app_pojavlauncher:assembleDebug
-          mv app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk out/app-debug.apk
-
-      - name: Gen md5sums
-        run: |
-          md5sum out/app-debug.apk > out/app-debug.md5
-
-      - name: Upload debug APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug (recommended)
-          path: out/app-debug.*
+          name: app-debug
+          path: out/app-debug-full.apk
 
-      - name: Upload release APK
+      - name: Upload Debug APK (No runtime)
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: out/app-release.*
+          name: app-debug-noruntime
+          path: out/app-debug-noruntime.apk
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: out/app-gplay.aab
+
+      - name: Upload onto the Google Play testing track
+        continue-on-error: true
+        if: github.repository_owner == 'TeamPojavLauncher' && github.ref_name == 'v3_openjdk'
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_JSON }}
+          packageName: net.kdt.pojavlaunch
+          releaseFiles: out/app-gplay.aab
+          track: internal
+          inAppUpdatePriority: 5
