@@ -102,6 +102,7 @@ jobs:
       - name: Build Nightly Release .apk
         if: github.repository_owner == 'TeamPojavLauncher' && github.ref_name == 'v3_openjdk'
         run: |
+          # Build the launcher
           gradle :app_pojavlauncher:assembleFullPubRelease
           mv app_pojavlauncher/build/outputs/apk/full/pubRelease/app_pojavlauncher-full-pubRelease.apk out/Pojavlauncher-nightly.apk
 
